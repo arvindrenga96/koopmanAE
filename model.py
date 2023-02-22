@@ -1,5 +1,6 @@
 from torch import nn
 import torch
+from INN.invertible_net import main_file as inn
 
 def gaussian_init_(n_units, std=1):    
     sampler = torch.distributions.Normal(torch.Tensor([0]), torch.Tensor([std/n_units]))
@@ -53,6 +54,7 @@ class decoderNet(nn.Module):
                     nn.init.constant_(m.bias, 0.0)          
 
     def forward(self, x):
+        # print(x[0].shape)
         x = x.view(-1, 1, self.b)
         x = self.tanh(self.fc1(x)) 
         x = self.tanh(self.fc2(x)) 
@@ -119,6 +121,46 @@ class koopmanAE(nn.Module):
         if mode == 'backward':
             for _ in range(self.steps_back):
                 q = self.backdynamics(q)
+                print("before decoder",q.shape)
+                out_back.append(self.decoder(q))
+                
+            out_back.append(self.decoder(z.contiguous()))
+            return out, out_back
+        
+        
+class koopmanAE_INN(nn.Module):
+    def __init__(self, m, n, b, steps, steps_back, alpha = 1, init_scale=1):
+        super(koopmanAE_INN, self).__init__()
+        self.steps = steps
+        self.steps_back = steps_back
+        
+        self.encoder = encoderNet(m, n, b, ALPHA = alpha)
+        self.decoder = decoderNet(m, n, b, ALPHA = alpha)
+        self.inn_fc  =  lambda input_data, output_data: torch.nn.Sequential(
+                                     torch.nn.Linear(input_data, input_data),
+                                     torch.nn.ReLU(),
+                                     torch.nn.Linear(output_data, output_data))
+        self.dynamics =inn(self.inn_fc,code_dim =b)  
+
+    def forward(self, x, mode='forward'):
+        out = []
+        out_back = []
+        z = self.encoder(x.contiguous())
+        q = z.contiguous()
+
+        
+        if mode == 'forward':
+            for _ in range(self.steps):
+                q,_ = self.dynamics(q,forward=True)
+                # print("Q",q)
+                out.append(self.decoder(q))
+
+            out.append(self.decoder(z.contiguous())) 
+            return out, out_back    
+
+        if mode == 'backward':
+            for _ in range(self.steps_back):
+                q = self.dynamics(q)
                 out_back.append(self.decoder(q))
                 
             out_back.append(self.decoder(z.contiguous()))

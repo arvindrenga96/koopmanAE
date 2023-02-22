@@ -17,6 +17,7 @@ from matplotlib.ticker import StrMethodFormatter
 
 result1 = np.load('results_pendulum/000_pred.npy')                  
 result2 = np.load('results_back_pendulum/000_pred.npy')   
+result3 = np.load('results_pendulum_inn/000_pred.npy')
 
     
 def moving_average(a, n=4) :
@@ -32,6 +33,9 @@ plt.fill_between(x=range(result1.shape[1]), y1=np.mean(result1, axis=0)-np.var(r
 
 plt.plot(np.mean(result2, axis=0), '-', lw=2, label='Consistent Koopman AE', color='#e41a1c')            
 plt.fill_between(x=range(result2.shape[1]), y1=np.mean(result2, axis=0)-np.var(result2, axis=0)**0.5, y2=np.mean(result2, axis=0)+np.var(result2, axis=0)**0.5, color='#e41a1c', alpha=0.2)         
+
+plt.plot(np.mean(result3, axis=0), '-', lw=2, label='Koopman AE INN')            
+plt.fill_between(x=range(result2.shape[1]), y1=np.mean(result2, axis=0)-np.var(result2, axis=0)**0.5, y2=np.mean(result2, axis=0)+np.var(result2, axis=0)**0.5, , alpha=0.2)      
   
                  
 plt.tick_params(axis='x', labelsize=18) 

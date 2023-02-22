@@ -138,8 +138,12 @@ train_loader = DataLoader(dataset = train_data,
 # Model
 #==============================================================================
 print(Xtrain.shape)
-model = koopmanAE(m, n, args.bottleneck, args.steps, args.steps_back, args.alpha, args.init_scale)
-print('koopmanAE')
+if args.model =="koopmanAE":
+    model = koopmanAE(m, n, args.bottleneck, args.steps, args.steps_back, args.alpha, args.init_scale)
+    print('koopmanAE')
+else:
+    model = koopmanAE_INN(m, n, args.bottleneck, args.steps, args.steps_back, args.alpha, args.init_scale)
+    print('koopmanAEinn')
 #model = torch.nn.DataParallel(model)
 model = model.to(device)
 

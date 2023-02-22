@@ -67,39 +67,42 @@ def train(model, train_loader, lr, weight_decay,
                     else:
                         loss_bwd += criterion(out_back[k], data_list[::-1][k+1].to(device))
                         
-                               
-                A = model.dynamics.dynamics.weight
-                B = model.backdynamics.dynamics.weight
+                if eta!=0:               
+                    A = model.dynamics.dynamics.weight
+                    B = model.backdynamics.dynamics.weight
 
-                K = A.shape[-1]
+                    K = A.shape[-1]
 
-                for k in range(1,K+1):
-                    As1 = A[:,:k]
-                    Bs1 = B[:k,:]
-                    As2 = A[:k,:]
-                    Bs2 = B[:,:k]
+                    for k in range(1,K+1):
+                        As1 = A[:,:k]
+                        Bs1 = B[:k,:]
+                        As2 = A[:k,:]
+                        Bs2 = B[:,:k]
 
-                    Ik = torch.eye(k).float().to(device)
+                        Ik = torch.eye(k).float().to(device)
 
-                    if k == 1:
-                        loss_consist = (torch.sum((torch.mm(Bs1, As1) - Ik)**2) + \
-                                         torch.sum((torch.mm(As2, Bs2) - Ik)**2) ) / (2.0*k)
-                    else:
-                        loss_consist += (torch.sum((torch.mm(Bs1, As1) - Ik)**2) + \
-                                         torch.sum((torch.mm(As2, Bs2)-  Ik)**2) ) / (2.0*k)
+                        if k == 1:
+                            loss_consist = (torch.sum((torch.mm(Bs1, As1) - Ik)**2) + \
+                                             torch.sum((torch.mm(As2, Bs2) - Ik)**2) ) / (2.0*k)
+                        else:
+                            loss_consist += (torch.sum((torch.mm(Bs1, As1) - Ik)**2) + \
+                                             torch.sum((torch.mm(As2, Bs2)-  Ik)**2) ) / (2.0*k)
 
 
-                
-                
-                
-#                Ik = torch.eye(K).float().to(device)
-#                loss_consist = (torch.sum( (torch.mm(A, B)-Ik )**2)**1 + \
-#                                         torch.sum( (torch.mm(B, A)-Ik)**2)**1 )
-#   
-                                        
-                
-    
+
+
+
+    #                Ik = torch.eye(K).float().to(device)
+    #                loss_consist = (torch.sum( (torch.mm(A, B)-Ik )**2)**1 + \
+    #                                         torch.sum( (torch.mm(B, A)-Ik)**2)**1 )
+    #   
+
+
+                else:
+                    loss_consist=0
             loss = loss_fwd + lamb * loss_identity +  nu * loss_bwd + eta * loss_consist
+
+                
 
             # ===================backward====================
             optimizer.zero_grad()
@@ -117,9 +120,11 @@ def train(model, train_loader, lr, weight_decay,
                 print('********** Epoche %s **********' %(epoch+1))
                 
                 print("loss identity: ", loss_identity.item())
-                if backward == 1:
+                if backward == 1 and eta!=0:
                     print("loss backward: ", loss_bwd.item())
                     print("loss consistent: ", loss_consist.item())
+                elif backward == 1:
+                    print("loss backward: ", loss_bwd.item())
                 print("loss forward: ", loss_fwd.item())
                 print("loss sum: ", loss.item())
 
@@ -130,7 +135,7 @@ def train(model, train_loader, lr, weight_decay,
                     print(np.abs(w))
 
 
-    if backward == 1:
+    if backward == 1 and eta!=0:
         loss_consist = loss_consist.item()
                 
                 
