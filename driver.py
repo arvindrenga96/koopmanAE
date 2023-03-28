@@ -70,6 +70,11 @@ parser.add_argument('--pred_steps', type=int, default='1000',  help='prediction 
 #
 parser.add_argument('--seed', type=int, default='1',  help='seed value')
 #
+parser.add_argument('--data_version', type=str, default='gulf_mexico_82_87',  help='data version')
+#
+parser.add_argument('--train_years', type=int, default='3',  help='train_years')
+#
+parser.add_argument('--test_years', type=int, default='1',  help='test_years')
 
 
 args = parser.parse_args()
@@ -93,7 +98,7 @@ if not os.path.isdir(args.folder):
 #******************************************************************************
 # load data
 #******************************************************************************
-Xtrain, Xtest, Xtrain_clean, Xtest_clean, m, n = data_from_name(args.dataset, noise=args.noise, theta=args.theta)
+Xtrain, Xtest, Xtrain_clean, Xtest_clean, m, n = data_from_name(args.dataset, noise=args.noise, theta=args.theta,data_version = args.data_version,train_years = args.train_years, test_years =args.test_years)
 
 #******************************************************************************
 # Reshape data for pytorch into 4D tensor Samples x Channels x Width x Hight
@@ -141,7 +146,7 @@ print(Xtrain.shape)
 if args.model =="koopmanAE":
     model = koopmanAE(m, n, args.bottleneck, args.steps, args.steps_back, args.alpha, args.init_scale)
     print('koopmanAE')
-else:
+elif args.model =="koopmanAE_INN":
     model = koopmanAE_INN(m, n, args.bottleneck, args.steps, args.steps_back, args.alpha, args.init_scale)
     print('koopmanAEinn')
 #model = torch.nn.DataParallel(model)
@@ -181,34 +186,66 @@ _, Xtarget = Xtest_clean[:-1], Xtest_clean[1:]
 snapshots_pred = []
 snapshots_truth = []
 
+print(Xinput.shape)
 
 error = []
-for i in range(30):
-            error_temp = []
-            init = Xinput[i].float().to(device)
-            if i == 0:
-                init0 = init
-            
-            z = model.encoder(init) # embedd data in latent space
-
-            for j in range(args.pred_steps):
-                if isinstance(z, tuple):
-                    z = model.dynamics(*z) # evolve system in time
-                else:
-                    z = model.dynamics(z)
-                if isinstance(z, tuple):
-                    x_pred = model.decoder(z[0])
-                else:
-                    x_pred = model.decoder(z) # map back to high-dimensional space
-                target_temp = Xtarget[i+j].data.cpu().numpy().reshape(m,n)
-                error_temp.append(np.linalg.norm(x_pred.data.cpu().numpy().reshape(m,n) - target_temp) / np.linalg.norm(target_temp))
-                
+if args.model!= 'koopmanAE':
+    for i in range(30):
+                error_temp = []
+                init = Xinput[i].float().to(device)
                 if i == 0:
-                    snapshots_pred.append(x_pred.data.cpu().numpy().reshape(m,n))
-                    snapshots_truth.append(target_temp)
- 
-            error.append(np.asarray(error_temp))
+                    init0 = init
 
+                z = model.encoder(init) # embedd data in latent space
+
+                for j in range(args.pred_steps):
+                    if isinstance(z, tuple):
+                        z = model.dynamics(*z.squeeze(1)) # evolve system in time 
+                    else:
+                        # print("z",z.shape)
+                        z = model.dynamics(z.squeeze(1))
+                    if isinstance(z, tuple):
+                        x_pred = model.decoder(z[0].unsqueeze(1))
+                    else:
+                        # print(z.shape)
+                        x_pred = model.decoder(z.unsqueeze(1)) # map back to high-dimensional space
+                        
+                    target_temp = Xtarget[i+j].data.cpu().numpy().reshape(m,n)
+                    error_temp.append(np.linalg.norm(x_pred.data.cpu().numpy().reshape(m,n) - target_temp) / np.linalg.norm(target_temp))
+
+                    if i == 0:
+                        snapshots_pred.append(x_pred.data.cpu().numpy().reshape(m,n))
+                        snapshots_truth.append(target_temp)
+
+                error.append(np.asarray(error_temp))
+else :
+    for i in range(30):
+                error_temp = []
+                init = Xinput[i].float().to(device)
+                if i == 0:
+                    init0 = init
+
+                z = model.encoder(init) # embedd data in latent space
+
+                for j in range(args.pred_steps):
+                    if isinstance(z, tuple):
+                        z = model.dynamics(*z) # evolve system in time 
+                    else:
+                        # print(z.shape)
+                        z = model.dynamics(z)
+                    if isinstance(z, tuple):
+                        x_pred = model.decoder(z[0])
+                    else:
+                        # print(z.shape)
+                        x_pred = model.decoder(z) # map back to high-dimensional space
+                    target_temp = Xtarget[i+j].data.cpu().numpy().reshape(m,n)
+                    error_temp.append(np.linalg.norm(x_pred.data.cpu().numpy().reshape(m,n) - target_temp) / np.linalg.norm(target_temp))
+
+                    if i == 0:
+                        snapshots_pred.append(x_pred.data.cpu().numpy().reshape(m,n))
+                        snapshots_truth.append(target_temp)
+
+                error.append(np.asarray(error_temp))
 
 
 error = np.asarray(error)
@@ -226,7 +263,7 @@ plt.ylabel('Relative prediction error', fontsize=22)
 plt.xlabel('Time step', fontsize=22)
 plt.grid(False)
 #plt.yscale("log")
-plt.ylim([0.0,error.max()*2])
+plt.ylim([0.0,np.nanmax(error)*2])
 #plt.legend(fontsize=22)
 fig.tight_layout()
 plt.savefig(args.folder +'/000prediction' +'.png')

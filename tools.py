@@ -36,6 +36,9 @@ def add_channels(X):
 
     elif len(X.shape) == 3:
         return X.reshape(X.shape[0], 1, X.shape[1], X.shape[2])
+    
+    elif len(X.shape) == 4:
+        return X   
 
     else:
         return "dimenional error"

@@ -39,7 +39,6 @@ def train(model, train_loader, lr, weight_decay,
             model.train()
             out, out_back = model(data_list[0].to(device), mode='forward')
 
-
             for k in range(steps):
                 if k == 0:
                     loss_fwd = criterion(out[k], data_list[k+1].to(device))
