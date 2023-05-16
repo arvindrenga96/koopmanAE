@@ -12,6 +12,7 @@ from read_dataset import data_from_name
 from model import *
 from tools import *
 from train import *
+from train_sst import *
 
 import os
 
@@ -166,11 +167,21 @@ print(model)
 #==============================================================================
 # Start training
 #==============================================================================
-model, optimizer, epoch_hist = train(model, train_loader,
-                    lr=args.lr, weight_decay=args.wd, lamb=args.lamb, num_epochs = args.epochs,
-                    learning_rate_change=args.lr_decay, epoch_update=args.lr_update,
-                    nu = args.nu, eta = args.eta, backward=args.backward, steps=args.steps, steps_back=args.steps_back,
-                    gradclip=args.gradclip)
+
+
+if args.dataset == "sst":
+    model, optimizer, epoch_hist = train_sst(model, train_loader, data_version=args.data_version,
+                        lr=args.lr, weight_decay=args.wd, lamb=args.lamb, num_epochs = args.epochs,
+                        learning_rate_change=args.lr_decay, epoch_update=args.lr_update,
+                        nu = args.nu, eta = args.eta, backward=args.backward, steps=args.steps, steps_back=args.steps_back,
+                        gradclip=args.gradclip)
+
+else:
+    model, optimizer, epoch_hist = train(model, train_loader,
+                        lr=args.lr, weight_decay=args.wd, lamb=args.lamb, num_epochs = args.epochs,
+                        learning_rate_change=args.lr_decay, epoch_update=args.lr_update,
+                        nu = args.nu, eta = args.eta, backward=args.backward, steps=args.steps, steps_back=args.steps_back,
+                        gradclip=args.gradclip) 
 
 
 torch.save(model.state_dict(), args.folder + '/model'+'.pkl')
@@ -181,6 +192,9 @@ torch.save(model.state_dict(), args.folder + '/model'+'.pkl')
 #******************************************************************************
 Xinput, Xtarget = Xtest[:-1], Xtest[1:]
 _, Xtarget = Xtest_clean[:-1], Xtest_clean[1:]
+
+if args.dataset == "sst":
+    nanflag = np.load('sst/sst_{}_nanflag.npy'.format(args.data_version))
 
 
 snapshots_pred = []
@@ -211,7 +225,11 @@ if args.model!= 'koopmanAE':
                         x_pred = model.decoder(z.unsqueeze(1)) # map back to high-dimensional space
                         
                     target_temp = Xtarget[i+j].data.cpu().numpy().reshape(m,n)
-                    error_temp.append(np.linalg.norm(x_pred.data.cpu().numpy().reshape(m,n) - target_temp) / np.linalg.norm(target_temp))
+                    if args.dataset == "sst":
+                        error_temp.append(np.linalg.norm(x_pred.data.cpu().numpy().reshape(m,n)[nanflag] - target_temp[nanflag]) / np.linalg.norm(target_temp[nanflag]))
+                    else:
+                        error_temp.append(np.linalg.norm(x_pred.data.cpu().numpy().reshape(m,n) - target_temp) / np.linalg.norm(target_temp))
+                    
 
                     if i == 0:
                         snapshots_pred.append(x_pred.data.cpu().numpy().reshape(m,n))
@@ -239,7 +257,10 @@ else :
                         # print(z.shape)
                         x_pred = model.decoder(z) # map back to high-dimensional space
                     target_temp = Xtarget[i+j].data.cpu().numpy().reshape(m,n)
-                    error_temp.append(np.linalg.norm(x_pred.data.cpu().numpy().reshape(m,n) - target_temp) / np.linalg.norm(target_temp))
+                    if args.dataset == "sst":
+                        error_temp.append(np.linalg.norm(x_pred.data.cpu().numpy().reshape(m,n)[nanflag] - target_temp[nanflag]) / np.linalg.norm(target_temp[nanflag]))
+                    else:
+                        error_temp.append(np.linalg.norm(x_pred.data.cpu().numpy().reshape(m,n) - target_temp) / np.linalg.norm(target_temp))
 
                     if i == 0:
                         snapshots_pred.append(x_pred.data.cpu().numpy().reshape(m,n))

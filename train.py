@@ -32,13 +32,15 @@ def train(model, train_loader, lr, weight_decay,
     epoch_hist = []
     loss_hist = []
     epoch_loss = []
+    
+    
                             
     for epoch in range(num_epochs):
         #print(epoch)
         for batch_idx, data_list in enumerate(train_loader):
             model.train()
             out, out_back = model(data_list[0].to(device), mode='forward')
-
+    
             for k in range(steps):
                 if k == 0:
                     loss_fwd = criterion(out[k], data_list[k+1].to(device))
@@ -52,8 +54,6 @@ def train(model, train_loader, lr, weight_decay,
             loss_bwd = 0.0
             loss_consist = 0.0
 
-            loss_bwd = 0.0
-            loss_consist = 0.0
 
             if backward == 1:
                 out, out_back = model(data_list[-1].to(device), mode='backward')

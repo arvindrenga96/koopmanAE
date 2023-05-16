@@ -1,6 +1,5 @@
 from torch import nn
 import torch
-from INN.invertible_net import main_file as inn
 import numpy as np
 import random
 
