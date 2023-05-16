@@ -200,9 +200,18 @@ def df_hydrology(noise):
 
 def sst(data_version):
 
-    
-    print('sst/sst_{}.npy'.format(data_version))
-    X = np.load('sst/sst_{}.npy'.format(data_version))
+    if data_version == "sst_omri":
+        X_train=np.load("../../../Downloads/sstday_train.npy")
+        X_test=np.load("../../../Downloads/sstday_valid.npy")
+        t, m, n = X_test.shape
+        sst_nanflag = np.full((m, n), True)
+        np.save("sst/sst_sst_omri_nanflag.npy",sst_nanflag)
+        
+        return X_train, X_test,X_train, X_test, m, n
+        
+    else:
+        print('sst/sst_{}.npy'.format(data_version))
+        X = np.load('sst/sst_{}.npy'.format(data_version))
     #******************************************************************************
     # Preprocess data
     #******************************************************************************
