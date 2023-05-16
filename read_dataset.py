@@ -218,7 +218,8 @@ def sst(data_version):
     # training_idx, test_idx = indices[220:1315], indices[1315:] # 6 years
     #training_idx, test_idx = indices[230:2420], indices[2420:2557] # 6 years
     #training_idx, test_idx = indices[0:1825], indices[1825:2557] # 5 years    
-    training_idx, test_idx = indices[210:1305], indices[1305:210+1305] # 3 years
+    training_idx, test_idx = indices[230:1325], indices[1325:210+1325] # 3 years
+    # training_idx, test_idx = indices[230:1325], indices[1325:2000] # 3 years
     # training_idx, test_idx = indices[210+35*365:210+38*365], indices[210+38*365:210+210+38*365] # 3 years    
     
     # mean subtract
