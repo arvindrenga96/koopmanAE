@@ -7,6 +7,7 @@ import random
 
 
 
+
 # def set_seed(seed_value):
 #     torch.manual_seed(seed_value)
 #     torch.cuda.manual_seed_all(seed_value)
@@ -474,13 +475,7 @@ class koopmanAE_INN(nn.Module):
             out_back.append(self.decoder(z.contiguous()))
             return out, out_back
         
-import torch
-import torch.nn as nn
-from torch.optim import Adam
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms, datasets
-from PIL import Image
-import os
+
 
 class ConvLSTMCell(nn.Module):
     def __init__(self, input_dim, hidden_dim, kernel_size, bias):
@@ -595,10 +590,9 @@ class ConvLSTM(nn.Module):
                     layer_output = torch.stack(output_inner, dim=1)
                     cur_layer_input = layer_output
 
-                    layer_output_list.append(layer_output)
-                    last_state_list.append([h, c])
+                    # last_state_list.append([h, c])
 
-                output = layer_output_list[-1].permute(0,1,3,4,2)
+                output = cur_layer_input.permute(0,1,3,4,2)
                 output = self.fc(output)
                 output = output.permute(0,1,4,2,3)
                 q= output

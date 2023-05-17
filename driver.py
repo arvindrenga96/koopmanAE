@@ -208,7 +208,7 @@ snapshots_truth = []
 print(Xinput.shape)
 
 error = []
-if args.model!= 'koopmanAE':
+if args.model == 'koopmanAE_INN':
     for i in range(30):
                 error_temp = []
                 init = Xinput[i].float().to(device)
@@ -241,6 +241,37 @@ if args.model!= 'koopmanAE':
                         snapshots_truth.append(target_temp)
 
                 error.append(np.asarray(error_temp))
+elif args.model == 'ConvLSTM':
+    for i in range(30):
+                error_temp = []
+                init = Xinput[i].float().to(device)
+                if i == 0:
+                    init0 = init
+
+                q = init.unsqueeze(1) # embedd data in latent space
+
+                for j in range(args.pred_steps):
+                    if isinstance(q, tuple):
+                        x_pred,_ = model(q[0])
+                        q = x_pred[0]
+                    else:
+                        x_pred,_ = model(q) # map back to high-dimensional space
+                        q = x_pred[0]
+                    
+                    x_pred = q
+                    target_temp = Xtarget[i+j].data.cpu().numpy().reshape(m,n)
+                    if args.dataset == "sst":
+                        error_temp.append(np.linalg.norm(x_pred.data.cpu().numpy().reshape(m,n)[nanflag] - target_temp[nanflag]) / np.linalg.norm(target_temp[nanflag]))
+                    else:
+                        error_temp.append(np.linalg.norm(x_pred.data.cpu().numpy().reshape(m,n) - target_temp) / np.linalg.norm(target_temp))
+                    
+
+                    if i == 0:
+                        snapshots_pred.append(x_pred.data.cpu().numpy().reshape(m,n))
+                        snapshots_truth.append(target_temp)
+
+                error.append(np.asarray(error_temp))
+    
 else :
     for i in range(30):
                 error_temp = []
