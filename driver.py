@@ -150,6 +150,11 @@ if args.model =="koopmanAE":
 elif args.model =="koopmanAE_INN":
     model = koopmanAE_INN(m, n, args.bottleneck, args.steps, args.steps_back, args.alpha, args.init_scale)
     print('koopmanAEinn')
+elif args.model == "ConvLSTM":
+    model = ConvLSTM(input_dim=1,   # input dimension (e.g., 3 for RGB images)
+                 hidden_dim=[64, 64],   # dimensionality of the hidden state in each layer
+                 kernel_size=(3, 3),   # size of the convolving kernel
+                 num_layers=2,steps=args.steps)
 #model = torch.nn.DataParallel(model)
 model = model.to(device)
 
