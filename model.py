@@ -597,7 +597,7 @@ class ConvLSTM(nn.Module):
                 output = output.permute(0,1,4,2,3)
                 q= output
                 output_list.append(q.squeeze(2))
-                output_list.append(input_tensor.squeeze(2)) 
+            output_list.append(input_tensor.squeeze(2)) 
         
         # if not self.batch_first:
         #     # (b, t, c, h, w) -> (t, b, c, h, w)
