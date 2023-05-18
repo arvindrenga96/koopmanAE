@@ -154,19 +154,18 @@ def get_data(dataset, index, preprocessed=True,dataset_fold=0):
 
 
 def df_hydrology(noise):
-    PREPROCESSED_DIR = "../../Fall_22/Benchmarking_caravan/DATA/caravan/PREPROCESSED/camelsgb"
     unknown = -999
     dynamic_channels = [20]#, 21, 22, 23, 24, 25, 26, 27, 28]
     output_channels = [29]
     np.random.seed(1)
 
-    file, index = "train", "train_index"
-    dataset = load_dataset(file,PREPROCESSED_DIR)
-    data = get_data(dataset, index)
-    nodes, window, channels = data.shape
+    X=np.load("/home/kumarv/renga016/Public/DATA/caravan_camels_gb/RAW/data.npy")
     
     basin =100 
-    X = data[basin,:,output_channels+dynamic_channels].T
+    X = X[basin,:,output_channels].T
+    
+    print("xshape",X.shape)
+    
     
     X = X.T
     Xclean = X.copy()
@@ -174,7 +173,7 @@ def df_hydrology(noise):
     
     
     # Rotate to high-dimensional space
-    Q = np.random.standard_normal((64,2))
+    Q = np.random.standard_normal((64,1))
     Q,_ = np.linalg.qr(Q)
     
     X = X.T.dot(Q.T) # rotate
@@ -186,11 +185,13 @@ def df_hydrology(noise):
 
     
     # split into train and test set 
-    X_train = X[0:2190]   
-    X_test = X[2190:]
+    X_train = X[0:10000]   
+    X_test = X[10000:]
 
-    X_train_clean = Xclean[0:2190]   
-    X_test_clean = Xclean[2190:]     
+    X_train_clean = Xclean[0:10000]   
+    X_test_clean = Xclean[10000:]    
+    
+    
     
     #******************************************************************************
     # Return train and test set
