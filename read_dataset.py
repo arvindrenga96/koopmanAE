@@ -161,10 +161,13 @@ def df_hydrology(noise):
 
     X=np.load("/home/kumarv/renga016/Public/DATA/caravan_camels_gb/RAW/data.npy")
     
+    print("Xshape",X.shape)
+    
+    
     basin =100 
     X = X[basin,:,output_channels].T
-    
-    print("xshape",X.shape)
+    print("Number of NANs",np.count_nonzero(np.isnan(X)))
+
     
     
     X = X.T
@@ -185,11 +188,11 @@ def df_hydrology(noise):
 
     
     # split into train and test set 
-    X_train = X[0:10000]   
-    X_test = X[10000:]
+    X_train = X[0:3650*3]   
+    X_test = X[3650*3:]
 
-    X_train_clean = Xclean[0:10000]   
-    X_test_clean = Xclean[10000:]    
+    X_train_clean = Xclean[0:3650*3]   
+    X_test_clean = Xclean[3650*3:]    
     
     
     
