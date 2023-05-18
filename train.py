@@ -129,9 +129,10 @@ def train(model, train_loader, lr, weight_decay,
 
                 epoch_hist.append(epoch+1) 
 
-                if hasattr(model.dynamics, 'dynamics'):
-                    w, _ = np.linalg.eig(model.dynamics.dynamics.weight.data.cpu().numpy())
-                    print(np.abs(w))
+                if (model.__class__.__name__ != "ConvLSTM" and model.__class__.__name__ != "LSTM"):
+                    if hasattr(model.dynamics, 'dynamics'):
+                        w, _ = np.linalg.eig(model.dynamics.dynamics.weight.data.cpu().numpy())
+                        print(np.abs(w))
 
 
     if backward == 1 and eta!=0:

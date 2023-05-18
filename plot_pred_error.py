@@ -20,14 +20,15 @@ from matplotlib.ticker import StrMethodFormatter
 # result3 = np.load('results_pendulum_inn/000_pred.npy')
 
 
-# result1 = np.load('results_det_pendulum_6_noise_03/000_pred.npy')                  
-# result2 = np.load('results_det_back_pendulum_6_noise_03/000_pred.npy')   
-# result3 = np.load('results_det_back_pendulum_6_noise_03_inn/000_pred.npy')
+result1 = np.load('results_pendulum_6_noise_03_seed_3_dae/000_pred.npy')                  
+result2 = np.load('results_pendulum_6_noise_03_seed_3_kae/000_pred.npy')   
+result3 = np.load('results_pendulum_6_noise_03_seed_3_kae_inn/000_pred.npy')
+result4 = np.load('results_pendulum_6_noise_03_seed_3_lstm/000_pred.npy')
 
 
-result1 = np.load('results_det_hydrology_6_noise_03/000_pred.npy')                  
-result2 = np.load('results_det_back_hydrology_6_noise_03/000_pred.npy')   
-result3 = np.load('results_det_back_hydrology_6_noise_03_inn/000_pred.npy')
+# result1 = np.load('results_det_hydrology_6_noise_03/000_pred.npy')                  
+# result2 = np.load('results_det_back_hydrology_6_noise_03/000_pred.npy')   
+# result3 = np.load('results_det_back_hydrology_6_noise_03_inn/000_pred.npy')
 
 def moving_average(a, n=4) :
     ret = np.cumsum(a, dtype=float)
@@ -45,6 +46,9 @@ plt.fill_between(x=range(result2.shape[1]), y1=np.mean(result2, axis=0)-np.var(r
 
 plt.plot(np.mean(result3, axis=0), '-', lw=2, label='Koopman AE INN',color='#1ae472')            
 plt.fill_between(x=range(result3.shape[1]), y1=np.mean(result3, axis=0)-np.var(result3, axis=0)**0.5, y2=np.mean(result3, axis=0)+np.var(result3, axis=0)**0.5, color='#1ae472', alpha=0.2)      
+                  
+plt.plot(np.mean(result4, axis=0), '-', lw=2, label='LSTM',color='#A020F0')            
+plt.fill_between(x=range(result4.shape[1]), y1=np.mean(result4, axis=0)-np.var(result4, axis=0)**0.5, y2=np.mean(result4, axis=0)+np.var(result4, axis=0)**0.5, color='#A020F0', alpha=0.2)   
   
                  
 plt.tick_params(axis='x', labelsize=18) 

@@ -107,7 +107,7 @@ def pendulum(noise, theta=2.4):
         return np.stack([theta, d_theta_dt],axis=1)
     
     
-    anal_ts = np.arange(0, 2200*0.1, 0.1)
+    anal_ts = np.arange(0, 3200*0.1, 0.1)
     X = sol(anal_ts, theta)
     
     X = X.T

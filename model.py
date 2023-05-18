@@ -622,3 +622,40 @@ class ConvLSTM(nn.Module):
         if not isinstance(param, list):
             param = [param] * num_layers
         return param
+    
+class LSTM(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers, output_size, steps):
+        super(LSTM, self).__init__()
+        self.steps = steps
+        self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+        self.fc = nn.Linear(hidden_size, output_size)
+        
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_normal_(m.weight)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0.0)
+
+    def forward(self, x, mode = "forward"):
+        # h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
+        # c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
+      
+    
+        x= x.squeeze(-1)
+        q=x
+        output_list= []
+        output_back_list = []
+        if mode == 'forward':
+            h = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
+            c = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(x.device)
+            for _ in range(self.steps):
+                # print("q",q.shape)
+                out, _ = self.lstm(q,(h,c))
+                out = self.fc(out)
+                q =out
+                output_list.append(q.unsqueeze(-1))
+            output_list.append(x.unsqueeze(-1)) 
+        
+        return output_list,output_back_list
