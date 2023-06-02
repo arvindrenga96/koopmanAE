@@ -357,6 +357,13 @@ class AffineCoupling(nn.Module):
             nn.Linear(hidden_dim, input_dim // 2,bias=False),
         )
 
+        # INITIALIZATION
+        # for module in self.modules():
+        #     if isinstance(module, torch.nn.Conv2d) or isinstance(module, torch.nn.Linear):
+        #         # torch.nn.init.xavier_uniform_(module.weight)
+        #         # torch.nn.init.orthogonal_(module.weight)
+        #         torch.nn.init.sparse_(module.weight, sparsity=0.4)
+
     def forward(self, x, reverse=False):
         x1, x2 = x[:, :self.input_dim // 2], x[:, self.input_dim // 2:]
 
@@ -444,7 +451,8 @@ class koopmanAE_INN(nn.Module):
         # for module in self.modules():
         #     if isinstance(module, torch.nn.Conv2d) or isinstance(module, torch.nn.Linear):
         #         torch.nn.init.xavier_uniform_(module.weight)
-        for m in self.modules():
+
+        for m in self.modules():  # KOOPMAN AE Initialization
             if isinstance(m, nn.Linear):
                 nn.init.xavier_normal_(m.weight)
                 if m.bias is not None:

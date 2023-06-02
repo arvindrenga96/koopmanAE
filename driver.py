@@ -75,7 +75,7 @@ parser.add_argument('--data_version', type=str, default='gulf_mexico_82_87',  he
 #
 parser.add_argument('--train_years', type=int, default='3',  help='train_years')
 #
-parser.add_argument('--test_years', type=int, default='1',  help='test_years')
+parser.add_argument('--start_years', type=int, default='0',  help='test_years')
 
 
 args = parser.parse_args()
@@ -99,28 +99,30 @@ if not os.path.isdir(args.folder):
 #******************************************************************************
 # load data
 #******************************************************************************
-Xtrain, Xtest, Xtrain_clean, Xtest_clean, m, n = data_from_name(args.dataset, noise=args.noise, theta=args.theta,data_version = args.data_version,train_years = args.train_years, test_years =args.test_years)
+Xtrain, Xval, Xtest, Xtrain_clean, Xval_clean, Xtest_clean, m, n = data_from_name(args.dataset, args.folder, noise=args.noise, theta=args.theta,data_version = args.data_version,train_years = args.train_years, start_year =args.start_years)
 
 #******************************************************************************
 # Reshape data for pytorch into 4D tensor Samples x Channels x Width x Hight
 #******************************************************************************
 Xtrain = add_channels(Xtrain)
 Xtest = add_channels(Xtest)
+Xval = add_channels(Xval)
 
 # transfer to tensor
 Xtrain = torch.from_numpy(Xtrain).float().contiguous()
 Xtest = torch.from_numpy(Xtest).float().contiguous()
-
+Xval = torch.from_numpy(Xval).float().contiguous()
 #******************************************************************************
 # Reshape data for pytorch into 4D tensor Samples x Channels x Width x Hight
 #******************************************************************************
 Xtrain_clean = add_channels(Xtrain_clean)
 Xtest_clean = add_channels(Xtest_clean)
+Xval_clean = add_channels(Xval_clean)
 
 # transfer to tensor
 Xtrain_clean = torch.from_numpy(Xtrain_clean).float().contiguous()
 Xtest_clean = torch.from_numpy(Xtest_clean).float().contiguous()
-
+Xval_clean = torch.from_numpy(Xval_clean).float().contiguous()
 #******************************************************************************
 # Create Dataloader objects
 #******************************************************************************
@@ -140,10 +142,11 @@ train_loader = DataLoader(dataset = train_data,
                               batch_size = args.batch,
                               shuffle = True)
 
+val_loader = DataLoader(dataset = Xval_clean, batch_size=Xval_clean.shape[0])
+
 #==============================================================================
 # Model
 #==============================================================================
-print(Xtrain.shape)
 if args.model =="koopmanAE":
     model = koopmanAE(m, n, args.bottleneck, args.steps, args.steps_back, args.alpha, args.init_scale)
     print('koopmanAE')
@@ -176,8 +179,12 @@ print(model)
 #==============================================================================
 
 
+
+
+
+
 if args.dataset == "sst":
-    model, optimizer, epoch_hist = train_sst(model, train_loader, data_version=args.data_version,
+    model, optimizer, epoch_hist = train_sst(model, train_loader, val_loader, data_version=args.data_version,
                         lr=args.lr, weight_decay=args.wd, lamb=args.lamb, num_epochs = args.epochs,
                         learning_rate_change=args.lr_decay, epoch_update=args.lr_update,
                         nu = args.nu, eta = args.eta, backward=args.backward, steps=args.steps, steps_back=args.steps_back,
@@ -191,153 +198,184 @@ else:
                         gradclip=args.gradclip) 
 
 
-torch.save(model.state_dict(), args.folder + '/model'+'.pkl')
+# torch.save(model.state_dict(), args.folder + '/model'+'.pkl')
+torch.save(model, args.folder + '/model.pkl')
 
 
 #******************************************************************************
 # Prediction
 #******************************************************************************
+
+
 Xinput, Xtarget = Xtest[:-1], Xtest[1:]
 _, Xtarget = Xtest_clean[:-1], Xtest_clean[1:]
 
+
+
 if args.dataset == "sst":
+    # nanflag = np.load('sst/sst_all_years_{}.npz'.format(args.data_version))['nanset']
     nanflag = np.load('sst/sst_{}_nanflag.npy'.format(args.data_version))
 
 
 snapshots_pred = []
 snapshots_truth = []
-
-print(Xinput.shape)
+snapshots_init = []
 
 error = []
 if args.model == 'koopmanAE_INN':
     for i in range(30):
-                error_temp = []
-                init = Xinput[i].float().to(device)
-                if i == 0:
-                    init0 = init
+        error_temp = []
+        init = Xinput[i].float().to(device)
 
-                z = model.encoder(init) # embedd data in latent space
+        snapshots_init.append(init.data.cpu().numpy().reshape(m, n))
 
-                for j in range(args.pred_steps):
-                    if isinstance(z, tuple):
-                        z = model.dynamics(*z.squeeze(1)) # evolve system in time 
-                    else:
-                        # print("z",z.shape)
-                        z = model.dynamics(z.squeeze(1))
-                    if isinstance(z, tuple):
-                        x_pred = model.decoder(z[0].unsqueeze(1))
-                    else:
-                        # print(z.shape)
-                        x_pred = model.decoder(z.unsqueeze(1)) # map back to high-dimensional space
-                        
-                    target_temp = Xtarget[i+j].data.cpu().numpy().reshape(m,n)
-                    if args.dataset == "sst":
-                        error_temp.append(np.linalg.norm(x_pred.data.cpu().numpy().reshape(m,n)[nanflag] - target_temp[nanflag]) / np.linalg.norm(target_temp[nanflag]))
-                    else:
-                        error_temp.append(np.linalg.norm(x_pred.data.cpu().numpy().reshape(m,n) - target_temp) / np.linalg.norm(target_temp))
-                    
+        z = model.encoder(init)  # embedd data in latent space
 
-                    if i == 0:
-                        snapshots_pred.append(x_pred.data.cpu().numpy().reshape(m,n))
-                        snapshots_truth.append(target_temp)
+        pred_temp_list = []
+        target_temp_list = []
 
-                error.append(np.asarray(error_temp))
+        for j in range(args.pred_steps):
+            if isinstance(z, tuple):
+                z = model.dynamics(*z.squeeze(1))  # evolve system in time
+            else:
+                # print("z",z.shape)
+                z = model.dynamics(z.squeeze(1))
+            if isinstance(z, tuple):
+                x_pred = model.decoder(z[0].unsqueeze(1))
+            else:
+                # print(z.shape)
+                x_pred = model.decoder(z.unsqueeze(1))  # map back to high-dimensional space
+
+            target_temp = Xtarget[i + j].data.cpu().numpy().reshape(m, n)
+            if args.dataset == "sst":
+                error_temp.append(np.linalg.norm(
+                    x_pred.data.cpu().numpy().reshape(m, n)[nanflag] - target_temp[nanflag]) / np.linalg.norm(
+                    target_temp[nanflag]))
+            else:
+                error_temp.append(
+                    np.linalg.norm(x_pred.data.cpu().numpy().reshape(m, n) - target_temp) / np.linalg.norm(target_temp))
+
+            pred_temp_list.append(x_pred.data.cpu().numpy().reshape(m, n))
+            target_temp_list.append(target_temp)
+
+        snapshots_pred.append(pred_temp_list)
+        snapshots_truth.append(target_temp_list)
+
+        error.append(np.asarray(error_temp))
+
 elif args.model == 'ConvLSTM':
     for i in range(30):
-                error_temp = []
-                init = Xinput[i].float().to(device)
-                if i == 0:
-                    init0 = init
+        error_temp = []
+        init = Xinput[i].float().to(device)
+        snapshots_init.append(init.data.cpu().numpy().reshape(m, n))
 
-                q = init.unsqueeze(1) # embedd data in latent space
+        q = init.unsqueeze(1)  # embedd data in latent space
 
-                for j in range(args.pred_steps):
-                    if isinstance(q, tuple):
-                        x_pred,_ = model(q[0])
-                        q = x_pred[0]
-                    else:
-                        x_pred,_ = model(q) # map back to high-dimensional space
-                        q = x_pred[0]
-                    
-                    x_pred = q
-                    target_temp = Xtarget[i+j].data.cpu().numpy().reshape(m,n)
-                    if args.dataset == "sst":
-                        error_temp.append(np.linalg.norm(x_pred.data.cpu().numpy().reshape(m,n)[nanflag] - target_temp[nanflag]) / np.linalg.norm(target_temp[nanflag]))
-                    else:
-                        error_temp.append(np.linalg.norm(x_pred.data.cpu().numpy().reshape(m,n) - target_temp) / np.linalg.norm(target_temp))
-                    
+        pred_temp_list = []
+        target_temp_list = []
+        for j in range(args.pred_steps):
+            if isinstance(q, tuple):
+                x_pred, _ = model(q[0])
+                q = x_pred[0]
+            else:
+                x_pred, _ = model(q)  # map back to high-dimensional space
+                q = x_pred[0]
 
-                    if i == 0:
-                        snapshots_pred.append(x_pred.data.cpu().numpy().reshape(m,n))
-                        snapshots_truth.append(target_temp)
+            x_pred = q
+            target_temp = Xtarget[i + j].data.cpu().numpy().reshape(m, n)
+            if args.dataset == "sst":
+                error_temp.append(np.linalg.norm(
+                    x_pred.data.cpu().numpy().reshape(m, n)[nanflag] - target_temp[nanflag]) / np.linalg.norm(
+                    target_temp[nanflag]))
+            else:
+                error_temp.append(
+                    np.linalg.norm(x_pred.data.cpu().numpy().reshape(m, n) - target_temp) / np.linalg.norm(target_temp))
 
-                error.append(np.asarray(error_temp))
+            pred_temp_list.append(x_pred.data.cpu().numpy().reshape(m, n))
+            target_temp_list.append(target_temp)
+
+        snapshots_pred.append(pred_temp_list)
+        snapshots_truth.append(target_temp_list)
+
+        error.append(np.asarray(error_temp))
 elif args.model == 'LSTM':
     for i in range(30):
-                error_temp = []
-                init = Xinput[i].float().to(device)
-                if i == 0:
-                    init0 = init
+        error_temp = []
+        init = Xinput[i].float().to(device)
+        snapshots_init.append(init.data.cpu().numpy().reshape(m, n))
 
-                q = init.unsqueeze(1) # embedd data in latent space
+        q = init.unsqueeze(1)  # embedd data in latent space
 
-                for j in range(args.pred_steps):
-                    if isinstance(q, tuple):
-                        x_pred,_ = model(q[0])
-                        q = x_pred[0]
-                    else:
-                        x_pred,_ = model(q) # map back to high-dimensional space
-                        q = x_pred[0]
-                    
-                    x_pred = q
-                    target_temp = Xtarget[i+j].data.cpu().numpy().reshape(m,n)
-                    if args.dataset == "sst":
-                        error_temp.append(np.linalg.norm(x_pred.data.cpu().numpy().reshape(m,n)[nanflag] - target_temp[nanflag]) / np.linalg.norm(target_temp[nanflag]))
-                    else:
-                        error_temp.append(np.linalg.norm(x_pred.data.cpu().numpy().reshape(m,n) - target_temp) / np.linalg.norm(target_temp))
-                    
+        pred_temp_list = []
+        target_temp_list = []
+        for j in range(args.pred_steps):
+            if isinstance(q, tuple):
+                x_pred, _ = model(q[0])
+                q = x_pred[0]
+            else:
+                x_pred, _ = model(q)  # map back to high-dimensional space
+                q = x_pred[0]
 
-                    if i == 0:
-                        snapshots_pred.append(x_pred.data.cpu().numpy().reshape(m,n))
-                        snapshots_truth.append(target_temp)
+            x_pred = q
+            target_temp = Xtarget[i + j].data.cpu().numpy().reshape(m, n)
+            if args.dataset == "sst":
+                error_temp.append(np.linalg.norm(
+                    x_pred.data.cpu().numpy().reshape(m, n)[nanflag] - target_temp[nanflag]) / np.linalg.norm(
+                    target_temp[nanflag]))
+            else:
+                error_temp.append(
+                    np.linalg.norm(x_pred.data.cpu().numpy().reshape(m, n) - target_temp) / np.linalg.norm(target_temp))
+            pred_temp_list.append(x_pred.data.cpu().numpy().reshape(m, n))
+            target_temp_list.append(target_temp)
 
-                error.append(np.asarray(error_temp))
-    
-else :
+        snapshots_pred.append(pred_temp_list)
+        snapshots_truth.append(target_temp_list)
+
+        error.append(np.asarray(error_temp))
+
+else:
     for i in range(30):
-                error_temp = []
-                init = Xinput[i].float().to(device)
-                if i == 0:
-                    init0 = init
+        error_temp = []
+        init = Xinput[i].float().to(device)
 
-                z = model.encoder(init) # embedd data in latent space
+        snapshots_init.append(init.data.cpu().numpy().reshape(m, n))
 
-                for j in range(args.pred_steps):
-                    if isinstance(z, tuple):
-                        z = model.dynamics(*z) # evolve system in time 
-                    else:
-                        # print(z.shape)
-                        z = model.dynamics(z)
-                    if isinstance(z, tuple):
-                        x_pred = model.decoder(z[0])
-                    else:
-                        # print(z.shape)
-                        x_pred = model.decoder(z) # map back to high-dimensional space
-                    target_temp = Xtarget[i+j].data.cpu().numpy().reshape(m,n)
-                    if args.dataset == "sst":
-                        error_temp.append(np.linalg.norm(x_pred.data.cpu().numpy().reshape(m,n)[nanflag] - target_temp[nanflag]) / np.linalg.norm(target_temp[nanflag]))
-                    else:
-                        error_temp.append(np.linalg.norm(x_pred.data.cpu().numpy().reshape(m,n) - target_temp) / np.linalg.norm(target_temp))
+        z = model.encoder(init)  # embedd data in latent space
 
-                    if i == 0:
-                        snapshots_pred.append(x_pred.data.cpu().numpy().reshape(m,n))
-                        snapshots_truth.append(target_temp)
+        pred_temp_list = []
+        target_temp_list = []
+        for j in range(args.pred_steps):
+            if isinstance(z, tuple):
+                z = model.dynamics(*z)  # evolve system in time
+            else:
+                # print(z.shape)
+                z = model.dynamics(z)
+            if isinstance(z, tuple):
+                x_pred = model.decoder(z[0])
+            else:
+                # print(z.shape)
+                x_pred = model.decoder(z)  # map back to high-dimensional space
+            target_temp = Xtarget[i + j].data.cpu().numpy().reshape(m, n)
+            if args.dataset == "sst":
+                error_temp.append(np.linalg.norm(
+                    x_pred.data.cpu().numpy().reshape(m, n)[nanflag] - target_temp[nanflag]) / np.linalg.norm(
+                    target_temp[nanflag]))
+            else:
+                error_temp.append(
+                    np.linalg.norm(x_pred.data.cpu().numpy().reshape(m, n) - target_temp) / np.linalg.norm(target_temp))
 
-                error.append(np.asarray(error_temp))
+            pred_temp_list.append(x_pred.data.cpu().numpy().reshape(m, n))
+            target_temp_list.append(target_temp)
+
+        snapshots_pred.append(pred_temp_list)
+        snapshots_truth.append(target_temp_list)
+
+        error.append(np.asarray(error_temp))
+
 
 
 error = np.asarray(error)
+
 
 fig = plt.figure(figsize=(15,12))
 plt.plot(error.mean(axis=0), 'o--', lw=3, label='', color='#377eb8')
@@ -370,7 +408,7 @@ print('Average error overarll pred: ', np.mean(error.mean(axis=0)))
     
     
 import scipy
-save_preds = {'pred' : np.asarray(snapshots_pred), 'truth': np.asarray(snapshots_truth), 'init': np.asarray(init0.float().to(device).data.cpu().numpy().reshape(m,n))} 
+save_preds = {'pred' : np.asarray(snapshots_pred), 'truth': np.asarray(snapshots_truth), 'init': np.asarray(snapshots_init)}
 scipy.io.savemat(args.folder +'/snapshots_pred.mat', dict(save_preds), appendmat=True, format='5', long_field_names=False, do_compression=False, oned_as='row')
 
 
