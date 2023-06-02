@@ -193,14 +193,14 @@ if args.dataset == "sst":
                         lr=args.lr, weight_decay=args.wd, lamb=args.lamb, num_epochs = args.epochs,
                         learning_rate_change=args.lr_decay, epoch_update=args.lr_update,
                         nu = args.nu, eta = args.eta, backward=args.backward, steps=args.steps, steps_back=args.steps_back,
-                        gradclip=args.gradclip)
+                        gradclip=args.gradclip, device = device)
 
 else:
     model, optimizer, epoch_hist = train(model, train_loader,
                         lr=args.lr, weight_decay=args.wd, lamb=args.lamb, num_epochs = args.epochs,
                         learning_rate_change=args.lr_decay, epoch_update=args.lr_update,
                         nu = args.nu, eta = args.eta, backward=args.backward, steps=args.steps, steps_back=args.steps_back,
-                        gradclip=args.gradclip) 
+                        gradclip=args.gradclip, device = device) 
 
 
 # torch.save(model.state_dict(), args.folder + '/model'+'.pkl')

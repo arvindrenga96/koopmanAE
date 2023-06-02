@@ -8,11 +8,11 @@ from tools import *
 
 
 def train_sst(model, train_loader, val_loader, lr, weight_decay,
-          lamb, num_epochs, learning_rate_change, epoch_update, data_version,
+          lamb, num_epochs, learning_rate_change, epoch_update, data_version, device,
           nu=0.0, eta=0.0, backward=0, steps=1, steps_back=1, gradclip=1, earlystopping=True, patience_max=40):
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
-    device = get_device()
+    device = device
              
             
     def lr_scheduler(optimizer, epoch, lr_decay_rate=0.8, decayEpoch=[]):
