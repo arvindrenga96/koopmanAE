@@ -213,8 +213,8 @@ _, Xtarget = Xtest_clean[:-1], Xtest_clean[1:]
 
 
 if args.dataset == "sst":
-    # nanflag = np.load('sst/sst_all_years_{}.npz'.format(args.data_version))['nanset']
-    nanflag = np.load('sst/sst_{}_nanflag.npy'.format(args.data_version))
+    nanflag = np.load('sst/sst_all_years_{}.npz'.format(args.data_version))['nanset']
+    # nanflag = np.load('sst/sst_{}_nanflag.npy'.format(args.data_version))
 
 
 snapshots_pred = []

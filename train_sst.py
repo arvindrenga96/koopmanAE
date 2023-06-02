@@ -9,7 +9,7 @@ from tools import *
 
 def train_sst(model, train_loader, val_loader, lr, weight_decay,
           lamb, num_epochs, learning_rate_change, epoch_update, data_version,
-          nu=0.0, eta=0.0, backward=0, steps=1, steps_back=1, gradclip=1, earlystopping=True, patience_max=40):
+          nu=0.0, eta=0.0, backward=0, steps=1, steps_back=1, gradclip=1, earlystopping=True, patience_max=100):
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
     device = get_device()
@@ -36,8 +36,8 @@ def train_sst(model, train_loader, val_loader, lr, weight_decay,
     patience =0
     min_val_loss = 100000
 
-    # nanflag = np.load('sst/sst_all_years_{}.npz'.format(data_version))['nanset']
-    nanflag = np.load('sst/sst_{}_nanflag.npy'.format(data_version))
+    nanflag = np.load('sst/sst_all_years_{}.npz'.format(data_version))['nanset']
+    # nanflag = np.load('sst/sst_{}_nanflag.npy'.format(data_version))
 
     for epoch in range(num_epochs):
         #print(epoch)

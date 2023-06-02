@@ -308,10 +308,10 @@ def sst(data_version,train_years, start_year, save_folder):
     else:
         # Load SST dataset for other versions
 
-        print('sst/sst_{}.npy'.format(data_version))
-        X = np.load('sst/sst_{}.npy'.format(data_version))
-        # print('sst/sst_all_years_{}.npz'.format(data_version))
-        # X = np.load('sst/sst_all_years_{}.npz'.format(data_version))['dataset']
+        # print('sst/sst_{}.npy'.format(data_version))
+        # X = np.load('sst/sst_{}.npy'.format(data_version))
+        print('sst/sst_all_years_{}.npz'.format(data_version))
+        X = np.load('sst/sst_all_years_{}.npz'.format(data_version))['dataset']
 
 
 
@@ -319,29 +319,32 @@ def sst(data_version,train_years, start_year, save_folder):
     t, m, n = X.shape
     print(X.shape)
 
-    # start_index = int(start_year*365) + 230
-    # train_end_index = start_index + int(train_years*365)
+    start_index = int(start_year*365) + 220
+    train_end_index = start_index + int(train_years*365)
 
     # Select train data
     indices = range(X.shape[0])
-    # training_idx, val_idx, test_idx = indices[start_index:train_end_index], indices[train_end_index:train_end_index + 210], indices[train_end_index + 365: train_end_index + 365 + 210] # 3 years
-    training_idx, val_idx, test_idx = indices[230:1325], indices[1325:210 + 1325], indices[1325+365:210 + 1325+365]  # 3 years
+    training_idx, val_idx, test_idx = indices[start_index:train_end_index], indices[train_end_index:train_end_index + 210], indices[train_end_index + 365: train_end_index + 365 + 210] 
+    # training_idx, val_idx, test_idx = indices[220:1315], indices[1315:210 + 1315], indices[1315+365:210 + 1315+365]  # 3 years
 
     # Reshape
     X = X.reshape(-1, m * n)
     print (f"Shape of X is {X.shape}") # no_of_timesteps, 100, 180
 
     # Save original mean, min and ptp
-    original_mean = X.mean(axis=0)
+    original_mean = X[start_index:train_end_index + 365 + 210].mean(axis=0)
 
     # Mean subtract
     X -= original_mean
 
-    original_min = np.min(X)
-    original_ptp = np.ptp(X)
+    original_min = np.min(X[start_index:train_end_index + 365 + 210])
+    original_ptp = np.ptp(X[start_index:train_end_index + 365 + 210])
 
     # Scale
     X = 2 * (X - original_min) / original_ptp - 1
+    print(np.min(X))
+    print(np.max(X))
+    print(np.mean(X))
 
     # Reshape
     X = X.reshape(-1, m, n)
