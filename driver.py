@@ -77,6 +77,11 @@ parser.add_argument('--train_years', type=int, default='3',  help='train_years')
 #
 parser.add_argument('--start_years', type=int, default='0',  help='test_years')
 
+parser.add_argument('--gpu', type=int, default=0, help='GPU device index to use. Default: 0')
+
+
+
+
 
 args = parser.parse_args()
 
@@ -86,7 +91,7 @@ torch.cuda.manual_seed(args.seed)
 torch.manual_seed(args.seed)
 np.random.seed(args.seed)
 set_seed(args.seed)
-device = get_device()
+device = torch.device(f'cuda:{args.gpu}' if torch.cuda.is_available() else 'cpu')
 
 
 
