@@ -92,8 +92,7 @@ torch.manual_seed(args.seed)
 np.random.seed(args.seed)
 set_seed(args.seed)
 device = torch.device(f'cuda:{args.gpu}' if torch.cuda.is_available() else 'cpu')
-
-
+print(device)
 
 #******************************************************************************
 # Create folder to save results

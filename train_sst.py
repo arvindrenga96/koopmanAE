@@ -13,6 +13,7 @@ def train_sst(model, train_loader, val_loader, lr, weight_decay,
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
     device = device
+    print(device)
              
             
     def lr_scheduler(optimizer, epoch, lr_decay_rate=0.8, decayEpoch=[]):
