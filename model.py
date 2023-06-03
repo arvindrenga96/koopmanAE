@@ -369,14 +369,14 @@ class AffineCoupling(nn.Module):
 
         if not reverse:
             s1 = self.scale1(x2)
-            s1 = torch.zeros(s1.shape).to('cuda')
+            s1 = torch.zeros(s1.shape).to(x.device)
             t1 = self.shift1(x2)
            
             y1 = x1 * torch.exp(s1) + t1
 #             y1 = torch.mul(x1,s1) + t1
 
             s2 = self.scale2(y1)
-            s2 = torch.zeros(s2.shape).to('cuda')
+            s2 = torch.zeros(s2.shape).to(x.device)
             t2 = self.shift2(y1)
 
            
@@ -386,14 +386,14 @@ class AffineCoupling(nn.Module):
             y = torch.cat([y1, y2], dim=1)
         else:
             s2 = self.scale2(x1)
-            s2 = torch.zeros(s2.shape).to('cuda')
+            s2 = torch.zeros(s2.shape).to(x.device)
             t2 = self.shift2(x1)
            
             y2 = (x2 - t2) * torch.exp(-s2)
 #             y2 = torch.div((x2 - t2), s2)
            
             s1 = self.scale1(y2)
-            s1 = torch.zeros(s1.shape).to('cuda')
+            s1 = torch.zeros(s1.shape).to(x.device)
             t1 = self.shift1(y2)
            
             y1 = (x1 - t1) * torch.exp(-s1)
